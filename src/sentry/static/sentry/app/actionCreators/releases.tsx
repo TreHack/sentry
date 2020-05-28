@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/browser';
 
-import {Client} from 'app/api';
 import ReleaseActions from 'app/actions/releaseActions';
+import {Client} from 'app/api';
+import {Deploy, Release} from 'app/types';
 
 type ParamsGet = {
   orgSlug: string;
@@ -15,60 +16,46 @@ export function getRelease(api: Client, params: ParamsGet) {
     releaseVersion
   )}/`;
 
-  ReleaseActions.loadVersion(orgSlug, projectSlug, releaseVersion);
+  ReleaseActions.loadRelease(orgSlug, projectSlug, releaseVersion);
 
   return api
     .requestPromise(path, {
       method: 'GET',
     })
-    .then(res => {
-      ReleaseActions.loadVersionSuccess(projectSlug, releaseVersion, res);
+    .then((res: Release) => {
+      ReleaseActions.loadReleaseSuccess(projectSlug, releaseVersion, res);
     })
     .catch(err => {
-      ReleaseActions.loadVersionError(projectSlug, releaseVersion, err);
+      ReleaseActions.loadReleaseError(projectSlug, releaseVersion, err);
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
-        scope.setFingerprint(['release-action-creator']);
+        scope.setFingerprint(['getRelease-action-creator']);
         Sentry.captureException(err);
       });
     });
 }
 
-/*
-export function getReleaseRepos(api: Client, params: ParamsGet) {
-  const {orgSlug, releaseVersion} = params;
-  const path = `/projects/${orgSlug}/repos/`;
-
-  return api
-    .requestPromise(path, {
-      method: 'GET',
-    })
-    .then(res => {
-      console.log('getReleaseRepos', res);
-      ReleaseActions.loadVersionError(projectSlug, releaseVersion, res);
-    })
-    .catch(err => {
-      ReleaseActions.loadVersionError(projectSlug, releaseVersion, err);
-    });
-}
-
 export function getReleaseDeploys(api: Client, params: ParamsGet) {
   const {orgSlug, projectSlug, releaseVersion} = params;
-
   const path = `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
     releaseVersion
   )}/deploys/`;
 
+  ReleaseActions.loadDeploys(orgSlug, projectSlug, releaseVersion);
+
   return api
     .requestPromise(path, {
       method: 'GET',
     })
-    .then(res => {
-      console.log('getReleaseDeploys', res);
-      ReleaseActions.loadVersionError(projectSlug, releaseVersion, res);
+    .then((res: Deploy[]) => {
+      ReleaseActions.loadDeploysError(projectSlug, releaseVersion, res);
     })
     .catch(err => {
-      ReleaseActions.loadVersionError(projectSlug, releaseVersion, err);
+      ReleaseActions.loadDeploysError(projectSlug, releaseVersion, err);
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        scope.setFingerprint(['getReleaseDeploys-action-creator']);
+        Sentry.captureException(err);
+      });
     });
 }
-*/
